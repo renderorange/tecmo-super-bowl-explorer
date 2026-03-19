@@ -19,5 +19,8 @@ build/
 .env
 .env.local
 
+# Data
+data/stats.db*
+
 # don't remove this one, hommie
 tmp/

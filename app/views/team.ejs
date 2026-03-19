@@ -1,0 +1,157 @@
+<%- include("partials/header", { title: team.name + " - Tecmo Super Bowl Stats", chartJs: true }) %>
+
+<h1 id="team-title"><%= team.name %></h1>
+
+<div class="card">
+    <div class="form-row">
+        <select id="season-select">
+            <option value="">Select Season</option>
+            <% seasons.forEach(function(s) { %>
+            <option value="<%= s.id %>">Season <%= s.id %> (<%= s.status %>)</option>
+            <% }); %>
+        </select>
+    </div>
+</div>
+
+<div id="team-content">
+    <div class="loading">Loading...</div>
+</div>
+
+<script>
+    var chart = null;
+    var teamId = <%= team.id %>;
+
+    document.getElementById("season-select").addEventListener("change", function() {
+        loadTeam(teamId);
+    });
+
+    if (document.getElementById("season-select").value) {
+        loadTeam(teamId);
+    }
+
+    async function loadTeam(teamId) {
+        var seasonId = document.getElementById("season-select").value;
+        var container = document.getElementById("team-content");
+        
+        if (!seasonId) {
+            container.innerHTML = '<div class="loading">Select a season</div>';
+            return;
+        }
+
+        showLoading(container);
+        try {
+            var data = await fetchJson("/api/reports/team/" + teamId + "/season/" + seasonId);
+            renderTeam(data);
+        } catch (e) {
+            showError(container, e.message);
+        }
+    }
+
+    function renderTeam(data) {
+        var team = data.team;
+        var seasonStats = data.season_stats;
+        var games = data.games;
+        var playerStats = data.player_stats;
+        var container = document.getElementById("team-content");
+        
+        var wins = 0, losses = 0, ties = 0;
+        games.forEach(function(g) {
+            var isHome = g.home_team_id === team.id;
+            var teamScore = isHome ? g.home_score : g.away_score;
+            var oppScore = isHome ? g.away_score : g.home_score;
+            if (teamScore > oppScore) wins++;
+            else if (teamScore < oppScore) losses++;
+            else ties++;
+        });
+
+        var gameLogRows = games.map(function(g) {
+            var isHome = g.home_team_id === team.id;
+            var teamScore = isHome ? g.home_score : g.away_score;
+            var oppScore = isHome ? g.away_score : g.home_score;
+            var oppAbbrev = isHome ? g.away_abbrev : g.home_abbrev;
+            var result = teamScore > oppScore ? "W" : teamScore < oppScore ? "L" : "T";
+            return "<tr>" +
+                "<td>" + g.week + "</td>" +
+                "<td>" + (isHome ? "vs" : "@") + " " + oppAbbrev + "</td>" +
+                "<td>" + result + "</td>" +
+                "<td>" + teamScore + "-" + oppScore + "</td>" +
+                "</tr>";
+        }).join("");
+
+        var playerRows = playerStats.map(function(p) {
+            return "<tr>" +
+                "<td>" + p.name + "</td>" +
+                "<td>" + p.position + "</td>" +
+                "<td>" + p.rushing_yards + "</td>" +
+                "<td>" + p.receiving_yards + "</td>" +
+                "<td>" + p.passing_yards + "</td>" +
+                "</tr>";
+        }).join("");
+
+        var statsCard = "";
+        if (seasonStats) {
+            statsCard = '<div class="card">' +
+                '<h2>Team Stats</h2>' +
+                '<table><tbody>' +
+                '<tr><td>Points For</td><td>' + formatNumber(seasonStats.points_for) + '</td></tr>' +
+                '<tr><td>Points Against</td><td>' + formatNumber(seasonStats.points_against) + '</td></tr>' +
+                '<tr><td>Home Record</td><td>' + seasonStats.home_wins + '-' + seasonStats.home_losses + '</td></tr>' +
+                '<tr><td>Away Record</td><td>' + seasonStats.away_wins + '-' + seasonStats.away_losses + '</td></tr>' +
+                '</tbody></table></div>';
+        }
+
+        container.innerHTML = 
+            '<div class="card">' +
+            '<h2>Season Record</h2>' +
+            '<div style="display: flex; gap: 2rem; font-size: 1.5rem;">' +
+            '<div><strong>' + wins + '</strong> Wins</div>' +
+            '<div><strong>' + losses + '</strong> Losses</div>' +
+            '<div><strong>' + ties + '</strong> Ties</div>' +
+            '</div></div>' +
+            statsCard +
+            '<div class="card"><h2>Season Chart</h2><div class="chart-container"><canvas id="chart"></canvas></div></div>' +
+            '<div class="card"><h2>Game Log</h2><table><thead><tr><th>Week</th><th>Opponent</th><th>Result</th><th>Score</th></tr></thead><tbody>' + gameLogRows + '</tbody></table></div>' +
+            '<div class="card"><h2>Top Players</h2><table><thead><tr><th>Player</th><th>Pos</th><th>Rush Yds</th><th>Rec Yds</th><th>Pass Yds</th></tr></thead><tbody>' + playerRows + '</tbody></table></div>';
+
+        if (games.length) {
+            renderChart(games, team.id);
+        }
+    }
+
+    function renderChart(games, teamId) {
+        var ctx = document.getElementById("chart").getContext("2d");
+        
+        var labels = games.map(function(g) { return "W" + g.week; });
+        var pointsFor = games.map(function(g) { return g.home_team_id === teamId ? g.home_score : g.away_score; });
+        var pointsAgainst = games.map(function(g) { return g.home_team_id === teamId ? g.away_score : g.home_score; });
+
+        if (chart) chart.destroy();
+        
+        chart = new Chart(ctx, {
+            type: "line",
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: "Points For",
+                        data: pointsFor,
+                        borderColor: "#e94560",
+                        tension: 0.1
+                    },
+                    {
+                        label: "Points Against",
+                        data: pointsAgainst,
+                        borderColor: "#4da6ff",
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    }
+</script>
+
+<%- include("partials/footer") %>

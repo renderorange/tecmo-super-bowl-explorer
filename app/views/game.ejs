@@ -1,0 +1,53 @@
+<%- include("partials/header", { title: "Game Details - Tecmo Super Bowl Stats", chartJs: false }) %>
+
+<h1 id="game-title">Season <%= game.season_id %> - Week <%= game.week %></h1>
+
+<div id="game-content">
+    <div class="card">
+        <h2><%= game.home_team_name %> vs <%= game.away_team_name %></h2>
+        <div style="font-size: 2rem; margin: 1rem 0;">
+            <span class="<%= game.home_score > game.away_score ? 'accent' : '' %>"><%= game.home_score %></span>
+            -
+            <span class="<%= game.home_score < game.away_score ? 'accent' : '' %>"><%= game.away_score %></span>
+            <%= game.is_overtime ? " (OT)" : "" %>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Team Stats</h2>
+        <table>
+            <thead>
+                <tr><th>Stat</th><th><%= game.home_team_abbrev %></th><th><%= game.away_team_abbrev %></th></tr>
+            </thead>
+            <tbody>
+                <tr><td>First Downs</td><td><%= game.home_first_downs %></td><td><%= game.away_first_downs %></td></tr>
+                <tr><td>Rushing Yards</td><td><%= game.home_rushing_yards %></td><td><%= game.away_rushing_yards %></td></tr>
+                <tr><td>Passing Yards</td><td><%= game.home_passing_yards %></td><td><%= game.away_passing_yards %></td></tr>
+                <tr><td>Turnovers</td><td><%= game.home_interceptions_thrown %></td><td><%= game.away_interceptions_thrown %></td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>Player Stats</h2>
+        <table>
+            <thead>
+                <tr><th>Player</th><th>Team</th><th>Pos</th><th>Rush Yds</th><th>Rec Yds</th><th>Pass Yds</th></tr>
+            </thead>
+            <tbody>
+                <% game.player_stats.forEach(function(p) { %>
+                <tr>
+                    <td><%= p.player_name %></td>
+                    <td><%= p.team_abbrev %></td>
+                    <td><%= p.position %></td>
+                    <td><%= p.rushing_yards %></td>
+                    <td><%= p.receiving_yards %></td>
+                    <td><%= p.passing_yards %></td>
+                </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<%- include("partials/footer") %>

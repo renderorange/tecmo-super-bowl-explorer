@@ -1,0 +1,24 @@
+const { createTestClient } = require("../helpers/express.cjs");
+
+describe("Players API", () => {
+    const client = createTestClient();
+
+    it("returns all players", async () => {
+        const response = await client.get("/api/players");
+        expect(response.status).toBe(200);
+        expect(Array.isArray(response.body)).toBe(true);
+        expect(response.body.length).toBeGreaterThan(0);
+    });
+
+    it("returns player by id", async () => {
+        const response = await client.get("/api/players/1");
+        expect(response.status).toBe(200);
+        expect(response.body).toHaveProperty("id");
+        expect(response.body).toHaveProperty("name");
+    });
+
+    it("returns 404 for non-existent player", async () => {
+        const response = await client.get("/api/players/999999");
+        expect(response.status).toBe(404);
+    });
+});
