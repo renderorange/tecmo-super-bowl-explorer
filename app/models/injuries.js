@@ -1,0 +1,367 @@
+const Model = require("./base");
+
+class Injuries extends Model {
+    cache_ttl() {
+        return 3600; // 1 hour cache
+    }
+
+    async get_injuries(filters = {}) {
+        const { season_id, player_id, team_id, week, limit = 100, offset = 0 } = filters;
+
+        let sql = `
+            SELECT i.*,
+                   p.name as player_name,
+                   p.position,
+                   t.name as team_name,
+                   ht.name as home_team,
+                   at.name as away_team,
+                   CASE 
+                       WHEN g.home_team_id = p.team_id THEN at.name 
+                       ELSE ht.name 
+                   END as opponent
+            FROM injuries i
+            JOIN players p ON p.id = i.player_id
+            JOIN teams t ON t.id = p.team_id
+            JOIN games g ON g.id = i.game_id
+            JOIN teams ht ON ht.id = g.home_team_id
+            JOIN teams at ON at.id = g.away_team_id
+            WHERE 1=1
+        `;
+        const params = [];
+
+        if (season_id) {
+            sql += ` AND i.season_id = ?`;
+            params.push(season_id);
+        }
+        if (player_id) {
+            sql += ` AND i.player_id = ?`;
+            params.push(player_id);
+        }
+        if (team_id) {
+            sql += ` AND p.team_id = ?`;
+            params.push(team_id);
+        }
+        if (week) {
+            sql += ` AND i.week_injured = ?`;
+            params.push(week);
+        }
+
+        sql += ` ORDER BY i.season_id DESC, i.week_injured DESC LIMIT ? OFFSET ?`;
+        params.push(limit, offset);
+
+        return this.query(sql, params);
+    }
+
+    async get_injury_by_id(id) {
+        const result = await this.query(
+            `
+            SELECT i.*,
+                   p.name as player_name,
+                   p.position,
+                   t.name as team_name,
+                   t.abbreviation as team_abbreviation,
+                   ht.name as home_team,
+                   at.name as away_team,
+                   g.home_score,
+                   g.away_score,
+                   CASE 
+                       WHEN g.home_team_id = p.team_id THEN at.name 
+                       ELSE ht.name 
+                   END as opponent,
+                   CASE
+                       WHEN g.home_team_id = p.team_id 
+                       THEN t.abbreviation || ' ' || g.home_score || ', ' || at.abbreviation || ' ' || g.away_score
+                       ELSE at.abbreviation || ' ' || g.away_score || ', ' || t.abbreviation || ' ' || g.home_score
+                   END as game_score
+            FROM injuries i
+            JOIN players p ON p.id = i.player_id
+            JOIN teams t ON t.id = p.team_id
+            JOIN games g ON g.id = i.game_id
+            JOIN teams ht ON ht.id = g.home_team_id
+            JOIN teams at ON at.id = g.away_team_id
+            WHERE i.id = ?
+        `,
+            [id],
+        );
+        return result[0] || null;
+    }
+
+    async get_prone_players(filters = {}) {
+        const { position, min_injuries = 3, limit = 100, offset = 0 } = filters;
+
+        let sql = `
+            SELECT 
+                p.id as player_id,
+                p.name as player_name,
+                t.name as team_name,
+                p.position,
+                COUNT(i.id) as total_injuries,
+                COUNT(DISTINCT pgs.game_id) as total_games_played,
+                ROUND(CAST(COUNT(i.id) AS FLOAT) / COUNT(DISTINCT pgs.game_id), 4) as injury_rate
+            FROM players p
+            JOIN teams t ON t.id = p.team_id
+            JOIN injuries i ON i.player_id = p.id
+            JOIN player_game_stats pgs ON pgs.player_id = p.id
+            GROUP BY p.id, p.name, t.name, p.position
+            HAVING COUNT(i.id) >= ?
+        `;
+        const params = [min_injuries];
+
+        if (position) {
+            sql += ` AND p.position = ?`;
+            params.push(position);
+        }
+
+        sql += ` ORDER BY total_injuries DESC, injury_rate DESC LIMIT ? OFFSET ?`;
+        params.push(limit, offset);
+
+        return this.query(sql, params);
+    }
+
+    async get_immune_players(filters = {}) {
+        const { position, min_games = 100, limit = 100, offset = 0 } = filters;
+
+        let sql = `
+            SELECT 
+                p.id as player_id,
+                p.name as player_name,
+                t.name as team_name,
+                p.position,
+                COALESCE(COUNT(i.id), 0) as total_injuries,
+                COUNT(DISTINCT pgs.game_id) as total_games_played,
+                ROUND(CAST(COALESCE(COUNT(i.id), 0) AS FLOAT) / COUNT(DISTINCT pgs.game_id), 4) as injury_rate
+            FROM players p
+            JOIN teams t ON t.id = p.team_id
+            JOIN player_game_stats pgs ON pgs.player_id = p.id
+            LEFT JOIN injuries i ON i.player_id = p.id
+            GROUP BY p.id, p.name, t.name, p.position
+            HAVING COUNT(DISTINCT pgs.game_id) >= ?
+        `;
+        const params = [min_games];
+
+        if (position) {
+            sql += ` AND p.position = ?`;
+            params.push(position);
+        }
+
+        sql += ` ORDER BY total_injuries ASC, total_games_played DESC LIMIT ? OFFSET ?`;
+        params.push(limit, offset);
+
+        return this.query(sql, params);
+    }
+
+    async get_rates_by_position() {
+        return this.query(`
+            SELECT 
+                injury_counts.position,
+                injury_counts.total_injuries,
+                game_counts.total_player_games,
+                ROUND(CAST(injury_counts.total_injuries AS FLOAT) / game_counts.total_player_games, 4) as injury_rate,
+                injury_counts.player_count
+            FROM (
+                SELECT p.position, COUNT(*) as total_injuries, COUNT(DISTINCT i.player_id) as player_count
+                FROM injuries i
+                JOIN players p ON p.id = i.player_id
+                GROUP BY p.position
+            ) injury_counts
+            JOIN (
+                SELECT p.position, COUNT(DISTINCT pgs.game_id) as total_player_games
+                FROM player_game_stats pgs
+                JOIN players p ON p.id = pgs.player_id
+                GROUP BY p.position
+            ) game_counts ON game_counts.position = injury_counts.position
+            ORDER BY injury_rate DESC
+        `);
+    }
+
+    async get_rates_by_team() {
+        return this.query(`
+            SELECT 
+                t.id as team_id,
+                t.name as team_name,
+                injury_counts.total_injuries,
+                game_counts.total_player_games,
+                ROUND(CAST(injury_counts.total_injuries AS FLOAT) / game_counts.total_player_games, 4) as injury_rate
+            FROM teams t
+            JOIN (
+                SELECT p.team_id, COUNT(*) as total_injuries
+                FROM injuries i
+                JOIN players p ON p.id = i.player_id
+                GROUP BY p.team_id
+            ) injury_counts ON injury_counts.team_id = t.id
+            JOIN (
+                SELECT p.team_id, COUNT(DISTINCT pgs.game_id) as total_player_games
+                FROM player_game_stats pgs
+                JOIN players p ON p.id = pgs.player_id
+                GROUP BY p.team_id
+            ) game_counts ON game_counts.team_id = t.id
+            ORDER BY injury_rate DESC
+        `);
+    }
+
+    async get_counts_by_week() {
+        return this.query(`
+            SELECT 
+                i.week_injured as week,
+                COUNT(i.id) as total_injuries,
+                COUNT(DISTINCT i.season_id) as seasons_analyzed,
+                ROUND(CAST(COUNT(i.id) AS FLOAT) / COUNT(DISTINCT i.season_id), 2) as avg_injuries_per_season
+            FROM injuries i
+            GROUP BY i.week_injured
+            ORDER BY i.week_injured
+        `);
+    }
+
+    async get_clustering(filters = {}) {
+        const { season_id, min_injuries = 3, limit = 100, offset = 0 } = filters;
+
+        let sql = `
+            SELECT 
+                g.id as game_id,
+                g.season_id,
+                g.week,
+                ht.name as home_team,
+                at.name as away_team,
+                COUNT(i.id) as injury_count
+            FROM games g
+            JOIN teams ht ON ht.id = g.home_team_id
+            JOIN teams at ON at.id = g.away_team_id
+            JOIN injuries i ON i.game_id = g.id
+            WHERE 1=1
+        `;
+        const params = [];
+
+        if (season_id) {
+            sql += ` AND g.season_id = ?`;
+            params.push(season_id);
+        }
+
+        sql += ` GROUP BY g.id, g.season_id, g.week, ht.name, at.name
+                 HAVING COUNT(i.id) >= ?
+                 ORDER BY injury_count DESC, g.season_id DESC, g.week DESC
+                 LIMIT ? OFFSET ?`;
+        params.push(min_injuries, limit, offset);
+
+        const games = await this.query(sql, params);
+
+        // For each game, get the injured players
+        for (const game of games) {
+            const injured = await this.query(
+                `
+                SELECT p.id as player_id, p.name as player_name, p.position
+                FROM injuries i
+                JOIN players p ON p.id = i.player_id
+                WHERE i.game_id = ?
+                ORDER BY p.position, p.name
+            `,
+                [game.game_id],
+            );
+            game.injured_players = injured;
+        }
+
+        return games;
+    }
+
+    async get_team_impact(team_id, filters = {}) {
+        const { season_id } = filters;
+
+        let where_clause = "WHERE 1=1";
+        const params = [team_id, team_id];
+
+        if (season_id) {
+            where_clause += " AND g.season_id = ?";
+            params.push(season_id);
+        }
+
+        // Games with injuries (any injury to team players)
+        const with_injuries = await this.query(
+            `
+            SELECT 
+                COUNT(DISTINCT g.id) as games,
+                SUM(CASE 
+                    WHEN (g.home_team_id = ? AND g.home_score > g.away_score) OR 
+                         (g.away_team_id = ? AND g.away_score > g.home_score) 
+                    THEN 1 ELSE 0 END) as wins,
+                SUM(CASE 
+                    WHEN (g.home_team_id = ? AND g.home_score < g.away_score) OR 
+                         (g.away_team_id = ? AND g.away_score < g.home_score) 
+                    THEN 1 ELSE 0 END) as losses
+            FROM games g
+            JOIN injuries i ON i.game_id = g.id
+            JOIN players p ON p.id = i.player_id
+            ${where_clause}
+            AND p.team_id = ?
+            AND (g.home_team_id = ? OR g.away_team_id = ?)
+        `,
+            [team_id, team_id, team_id, team_id, ...params.slice(2), team_id, team_id, team_id],
+        );
+
+        // Games without injuries
+        const without_injuries = await this.query(
+            `
+            SELECT 
+                COUNT(DISTINCT g.id) as games,
+                SUM(CASE 
+                    WHEN (g.home_team_id = ? AND g.home_score > g.away_score) OR 
+                         (g.away_team_id = ? AND g.away_score > g.home_score) 
+                    THEN 1 ELSE 0 END) as wins,
+                SUM(CASE 
+                    WHEN (g.home_team_id = ? AND g.home_score < g.away_score) OR 
+                         (g.away_team_id = ? AND g.away_score < g.home_score) 
+                    THEN 1 ELSE 0 END) as losses
+            FROM games g
+            ${where_clause}
+            AND (g.home_team_id = ? OR g.away_team_id = ?)
+            AND NOT EXISTS (
+                SELECT 1 FROM injuries i 
+                JOIN players p ON p.id = i.player_id 
+                WHERE i.game_id = g.id AND p.team_id = ?
+            )
+        `,
+            [team_id, team_id, team_id, team_id, ...params.slice(2), team_id, team_id, team_id],
+        );
+
+        // Most injured players on the team
+        const most_injured = await this.query(
+            `
+            SELECT 
+                p.id as player_id,
+                p.name as player_name,
+                p.position,
+                COUNT(i.id) as total_injuries,
+                SUM(i.games_missed) as total_games_missed
+            FROM injuries i
+            JOIN players p ON p.id = i.player_id
+            ${where_clause.replace("g.", "i.")}
+            AND p.team_id = ?
+            GROUP BY p.id, p.name, p.position
+            ORDER BY total_injuries DESC, total_games_missed DESC
+            LIMIT 10
+        `,
+            [...params.slice(2), team_id],
+        );
+
+        const with_inj = with_injuries[0];
+        const without_inj = without_injuries[0];
+
+        return {
+            team_id,
+            season_id: season_id || null,
+            with_injuries: {
+                games: with_inj.games || 0,
+                wins: with_inj.wins || 0,
+                losses: with_inj.losses || 0,
+                win_rate: with_inj.games > 0 ? Math.round((with_inj.wins / with_inj.games) * 1000) / 1000 : 0,
+            },
+            without_injuries: {
+                games: without_inj.games || 0,
+                wins: without_inj.wins || 0,
+                losses: without_inj.losses || 0,
+                win_rate: without_inj.games > 0 ? Math.round((without_inj.wins / without_inj.games) * 1000) / 1000 : 0,
+            },
+            most_injured_players: most_injured,
+        };
+    }
+}
+
+module.exports = Injuries;

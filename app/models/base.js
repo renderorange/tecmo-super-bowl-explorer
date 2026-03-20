@@ -7,7 +7,7 @@ class Model extends ClassTypes {
         super();
         this.db = db;
         this._table = this.tableName();
-        this._cache = new NodeCache({ stdTTL: this.cacheTtl() });
+        this._cache = new NodeCache({ stdTTL: this.cache_ttl() });
     }
 
     tableName() {
@@ -17,18 +17,18 @@ class Model extends ClassTypes {
             .replace(/^_/, "");
     }
 
-    cacheTtl() {
+    cache_ttl() {
         return 300;
     }
 
-    cacheKey(selector, options) {
+    cache_key(selector, options) {
         return JSON.stringify({ table: this._table, selector, options });
     }
 
     async get(selector = {}, options = {}) {
         this.isaObject(selector);
 
-        const key = this.cacheKey(selector, options);
+        const key = this.cache_key(selector, options);
         const cached = this._cache.get(key);
         if (cached !== undefined) {
             return cached;
@@ -69,7 +69,7 @@ class Model extends ClassTypes {
     }
 
     async count(selector = {}) {
-        const key = this.cacheKey(selector, { count: true });
+        const key = this.cache_key(selector, { count: true });
         const cached = this._cache.get(key);
         if (cached !== undefined) {
             return cached;

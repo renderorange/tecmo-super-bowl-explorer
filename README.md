@@ -2,8 +2,6 @@
 
 ## Architecture
 
-Following hirgon patterns:
-
 - Models for database access
 - Router modules for routes
 - Base model class with transparent caching
@@ -26,13 +24,16 @@ app/
 │   ├── seasons.js        # Seasons model (TTL: 3600s)
 │   ├── teams.js          # Teams model (TTL: 3600s)
 │   ├── players.js        # Players model (TTL: 3600s)
-│   └── games.js          # Games model (TTL: 300s)
+│   ├── games.js          # Games model (TTL: 300s)
+│   ├── reports.js        # Reports model (analytical queries)
+│   └── injuries.js       # Injuries model (TTL: 3600s)
 └── routes/
     ├── seasons.js         # /api/seasons
     ├── teams.js          # /api/teams
     ├── players.js        # /api/players
     ├── games.js          # /api/games
-    └── reports.js        # /api/reports
+    ├── reports.js        # /api/reports
+    └── injuries.js       # /api/injuries
 
 tests/
 ├── setup.cjs              # Jest setup (suppresses console logs)
@@ -41,7 +42,8 @@ tests/
     ├── teams.test.js      # 7 tests
     ├── players.test.js    # 7 tests
     ├── games.test.js      # 7 tests
-    └── reports.test.js    # 6 tests
+    ├── reports.test.js    # 6 tests
+    └── injuries.test.js   # 15 tests
 ```
 
 ---
@@ -90,6 +92,23 @@ All IDs are validated and return 400 for invalid values.
 - `GET /api/reports/head_to_head/:team1_id/:team2_id` - Head-to-head games
 - `GET /api/reports/team/:team_id/stats_by_season` - Team stats across all seasons
 
+### Injuries
+
+- `GET /api/injuries` - All injuries (paginated)
+    - Query: `?season_id=1&player_id=42&team_id=5&week=8&limit=100&offset=0`
+- `GET /api/injuries/:id` - Injury by ID with full context
+- `GET /api/injuries/prone` - Most injury-prone players
+    - Query: `?position=RB&min_injuries=3&limit=100&offset=0`
+- `GET /api/injuries/immune` - Least injured players (most durable)
+    - Query: `?position=QB&min_games=100&limit=100&offset=0`
+- `GET /api/injuries/by_position` - Injury rates by position (QB, RB, WR, etc.)
+- `GET /api/injuries/by_team` - Injury rates by team across all seasons
+- `GET /api/injuries/by_week` - Injury counts by week (1-17)
+- `GET /api/injuries/clustering` - Games with multiple injuries
+    - Query: `?season_id=1&min_injuries=3&limit=100&offset=0`
+- `GET /api/injuries/impact/:team_id` - Team W-L with/without injuries
+    - Query: `?season_id=1`
+
 ---
 
 ## API Design Principles
@@ -135,6 +154,8 @@ Hardcoded per model (not env vars):
 - Teams: 3600s (1 hour)
 - Players: 3600s (1 hour)
 - Games: 300s (5 minutes)
+- Reports: No cache (dynamic analytical queries)
+- Injuries: 3600s (1 hour)
 
 ---
 
@@ -142,7 +163,7 @@ Hardcoded per model (not env vars):
 
 ```bash
 npm start          # Start server on port 3000
-npm test           # Run tests (33 tests)
+npm test           # Run tests (48 tests)
 npm run lint       # Run linter
 ```
 
@@ -150,7 +171,7 @@ npm run lint       # Run linter
 
 ## Test Coverage
 
-- 33 tests across 5 test suites
+- 48 tests across 6 test suites
 - Tests cover:
     - Basic CRUD operations
     - Input validation (400 errors)
@@ -158,14 +179,6 @@ npm run lint       # Run linter
     - Pagination
     - Filtering
     - Sub-resources
+    - Analytical queries (reports and injuries)
 
 ---
-
-## Multiverse Data Available
-
-- **73 seasons** (70 completed, 3 running)
-- **15,968 games** (1,010 overtime, 1,033 shutouts, 10 zero-zero games)
-- **6,890 injuries** tracked
-- **28 teams** competing
-
-Ready for multiverse exploration and anomaly detection!

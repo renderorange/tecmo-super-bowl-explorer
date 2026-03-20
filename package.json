@@ -5,11 +5,12 @@
     "main": "app/server.js",
     "scripts": {
         "start": "node app/server.js",
-        "dev": "node --watch app/server.js",
+        "start:dev": "node --watch app/server.js",
         "test": "NODE_OPTIONS=--experimental-vm-modules jest --forceExit",
         "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
         "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
-        "lint": "node node_modules/eslint/bin/eslint.js .",
+        "lint": "node node_modules/eslint/bin/eslint.js . --fix",
+        "lint:check": "node node_modules/eslint/bin/eslint.js .",
         "format": "prettier --write \"**/*.{js,mjs,cjs}\"",
         "format:check": "prettier --check \"**/*.{js,mjs,cjs}\""
     },
