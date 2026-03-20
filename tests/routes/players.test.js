@@ -21,4 +21,28 @@ describe("Players API", () => {
         const response = await client.get("/api/players/999999");
         expect(response.status).toBe(404);
     });
+
+    it("returns 400 for invalid player id", async () => {
+        const response = await client.get("/api/players/invalid");
+        expect(response.status).toBe(400);
+        expect(response.body).toHaveProperty("error");
+    });
+
+    it("filters players by team_id", async () => {
+        const response = await client.get("/api/players?team_id=1");
+        expect(response.status).toBe(200);
+        expect(Array.isArray(response.body)).toBe(true);
+    });
+
+    it("returns player game stats", async () => {
+        const response = await client.get("/api/players/1/game_stats");
+        expect(response.status).toBe(200);
+        expect(Array.isArray(response.body)).toBe(true);
+    });
+
+    it("respects pagination parameters", async () => {
+        const response = await client.get("/api/players?limit=5&offset=0");
+        expect(response.status).toBe(200);
+        expect(response.body.length).toBeLessThanOrEqual(5);
+    });
 });

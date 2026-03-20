@@ -3,8 +3,14 @@ const router = express.Router();
 
 const Teams = require("../models/teams");
 
-router.get("/standings/:seasonId", async (req, res) => {
+router.get("/standings/:season_id", async (req, res) => {
     try {
+        // Input validation
+        const season_id = parseInt(req.params.season_id);
+        if (isNaN(season_id) || season_id < 1) {
+            return res.status(400).json({ error: "Invalid season_id" });
+        }
+
         const teams_obj = new Teams();
         const standings = await teams_obj.query(
             `
@@ -14,7 +20,7 @@ router.get("/standings/:seasonId", async (req, res) => {
             WHERE tss.season_id = ?
             ORDER BY tss.wins DESC, tss.points_for DESC, t.id
         `,
-            [req.params.seasonId],
+            [season_id],
         );
         res.json(standings);
     } catch (err) {
@@ -22,8 +28,14 @@ router.get("/standings/:seasonId", async (req, res) => {
     }
 });
 
-router.get("/standings/:seasonId/division", async (req, res) => {
+router.get("/standings/:season_id/division", async (req, res) => {
     try {
+        // Input validation
+        const season_id = parseInt(req.params.season_id);
+        if (isNaN(season_id) || season_id < 1) {
+            return res.status(400).json({ error: "Invalid season_id" });
+        }
+
         const teams_obj = new Teams();
         const standings = await teams_obj.query(
             `
@@ -33,7 +45,7 @@ router.get("/standings/:seasonId/division", async (req, res) => {
             WHERE tss.season_id = ?
             ORDER BY t.conference, t.division, tss.wins DESC, tss.points_for DESC
         `,
-            [req.params.seasonId],
+            [season_id],
         );
         res.json(standings);
     } catch (err) {
@@ -41,12 +53,21 @@ router.get("/standings/:seasonId/division", async (req, res) => {
     }
 });
 
-router.get("/team/:teamId/season/:seasonId", async (req, res) => {
+router.get("/team/:team_id/season/:season_id", async (req, res) => {
     try {
-        const teams_obj = new Teams();
-        const { teamId, seasonId } = req.params;
+        // Input validation
+        const team_id = parseInt(req.params.team_id);
+        const season_id = parseInt(req.params.season_id);
+        if (isNaN(team_id) || team_id < 1) {
+            return res.status(400).json({ error: "Invalid team_id" });
+        }
+        if (isNaN(season_id) || season_id < 1) {
+            return res.status(400).json({ error: "Invalid season_id" });
+        }
 
-        const team = await teams_obj.first({ id: teamId });
+        const teams_obj = new Teams();
+
+        const team = await teams_obj.first({ id: team_id });
         if (!team) {
             return res.status(404).json({ error: "Team not found" });
         }
@@ -56,7 +77,7 @@ router.get("/team/:teamId/season/:seasonId", async (req, res) => {
             SELECT * FROM team_season_stats 
             WHERE team_id = ? AND season_id = ?
         `,
-            [teamId, seasonId],
+            [team_id, season_id],
         );
 
         const games = await teams_obj.query(
@@ -70,7 +91,7 @@ router.get("/team/:teamId/season/:seasonId", async (req, res) => {
             WHERE g.season_id = ? AND (g.home_team_id = ? OR g.away_team_id = ?)
             ORDER BY g.week
         `,
-            [seasonId, teamId, teamId],
+            [season_id, team_id, team_id],
         );
 
         const playerStats = await teams_obj.query(
@@ -83,7 +104,7 @@ router.get("/team/:teamId/season/:seasonId", async (req, res) => {
             ORDER BY total_yards DESC
             LIMIT 20
         `,
-            [teamId, seasonId],
+            [team_id, season_id],
         );
 
         res.json({
@@ -97,10 +118,19 @@ router.get("/team/:teamId/season/:seasonId", async (req, res) => {
     }
 });
 
-router.get("/head-to-head/:team1/:team2", async (req, res) => {
+router.get("/head_to_head/:team1_id/:team2_id", async (req, res) => {
     try {
+        // Input validation
+        const team1_id = parseInt(req.params.team1_id);
+        const team2_id = parseInt(req.params.team2_id);
+        if (isNaN(team1_id) || team1_id < 1) {
+            return res.status(400).json({ error: "Invalid team1_id" });
+        }
+        if (isNaN(team2_id) || team2_id < 1) {
+            return res.status(400).json({ error: "Invalid team2_id" });
+        }
+
         const teams_obj = new Teams();
-        const { team1, team2 } = req.params;
 
         const games = await teams_obj.query(
             `
@@ -114,11 +144,11 @@ router.get("/head-to-head/:team1/:team2", async (req, res) => {
                OR (g.home_team_id = ? AND g.away_team_id = ?)
             ORDER BY g.season_id DESC, g.week DESC
         `,
-            [team1, team2, team2, team1],
+            [team1_id, team2_id, team2_id, team1_id],
         );
 
-        const team1Info = await teams_obj.first({ id: team1 });
-        const team2Info = await teams_obj.first({ id: team2 });
+        const team1Info = await teams_obj.first({ id: team1_id });
+        const team2Info = await teams_obj.first({ id: team2_id });
 
         res.json({
             team1: team1Info,
@@ -130,8 +160,14 @@ router.get("/head-to-head/:team1/:team2", async (req, res) => {
     }
 });
 
-router.get("/team/:teamId/stats-by-season", async (req, res) => {
+router.get("/team/:team_id/stats_by_season", async (req, res) => {
     try {
+        // Input validation
+        const team_id = parseInt(req.params.team_id);
+        if (isNaN(team_id) || team_id < 1) {
+            return res.status(400).json({ error: "Invalid team_id" });
+        }
+
         const teams_obj = new Teams();
         const stats = await teams_obj.query(
             `
@@ -141,7 +177,7 @@ router.get("/team/:teamId/stats-by-season", async (req, res) => {
             WHERE tss.team_id = ?
             ORDER BY tss.season_id
         `,
-            [req.params.teamId],
+            [team_id],
         );
         res.json(stats);
     } catch (err) {

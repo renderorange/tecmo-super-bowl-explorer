@@ -21,4 +21,28 @@ describe("Teams API", () => {
         const response = await client.get("/api/teams/999999");
         expect(response.status).toBe(404);
     });
+
+    it("returns 400 for invalid team id", async () => {
+        const response = await client.get("/api/teams/invalid");
+        expect(response.status).toBe(400);
+        expect(response.body).toHaveProperty("error");
+    });
+
+    it("returns team seasons", async () => {
+        const response = await client.get("/api/teams/1/seasons");
+        expect(response.status).toBe(200);
+        expect(Array.isArray(response.body)).toBe(true);
+    });
+
+    it("filters teams by conference", async () => {
+        const response = await client.get("/api/teams?conference=AFC");
+        expect(response.status).toBe(200);
+        expect(Array.isArray(response.body)).toBe(true);
+    });
+
+    it("respects pagination parameters", async () => {
+        const response = await client.get("/api/teams?limit=5&offset=0");
+        expect(response.status).toBe(200);
+        expect(response.body.length).toBeLessThanOrEqual(5);
+    });
 });
