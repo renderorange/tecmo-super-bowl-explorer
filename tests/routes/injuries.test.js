@@ -85,7 +85,7 @@ describe("Injuries API", () => {
         const response = await client.get("/api/injuries/by_week");
         expect(response.status).toBe(200);
         expect(Array.isArray(response.body)).toBe(true);
-        expect(response.body.length).toBe(17); // 17 weeks
+        expect(response.body.length).toBe(16); // 16 weeks (1-16)
     });
 
     it("returns injury clustering", async () => {

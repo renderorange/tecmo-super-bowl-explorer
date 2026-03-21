@@ -1,5 +1,5 @@
 process.env.NODE_ENV = "test";
-process.env.DB_PATH = "tmp/data/stats.db";
+process.env.DB_PATH = "test/data/stats.db";
 
 beforeAll(() => {
     jest.spyOn(console, "log").mockImplementation(() => {});

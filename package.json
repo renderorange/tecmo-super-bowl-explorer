@@ -9,6 +9,8 @@
         "test": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --forceExit",
         "test:watch": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --watch",
         "test:coverage": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --coverage",
+        "db:test-setup": "node scripts/generate-test-data.js",
+        "test:performance": "NODE_ENV=test jest tests/performance",
         "lint": "node node_modules/eslint/bin/eslint.js . --fix",
         "lint:check": "node node_modules/eslint/bin/eslint.js .",
         "format": "prettier --write \"**/*.{js,mjs,cjs}\"",

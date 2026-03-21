@@ -22,8 +22,11 @@ build/
 .env
 .env.local
 
-# Data
+# Data (production)
 data/stats.db*
 
-# don't remove this one, hommie
+# Test data
+test/data/stats.db*
+
+# tmp directory
 tmp/
