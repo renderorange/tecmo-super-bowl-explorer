@@ -5,6 +5,10 @@ class Seasons extends Model {
         return 3600;
     }
 
+    allowed_order_by() {
+        return ["id", "id DESC", "id ASC", "started_at", "started_at DESC", "started_at ASC"];
+    }
+
     async get_season_stats(id) {
         const games = await this.query(
             `

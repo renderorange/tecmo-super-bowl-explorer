@@ -34,7 +34,7 @@ const status = {
     },
     HTTP_TOO_MANY_REQUESTS: {
         code: 429,
-        string: "You're coming awfully fast, how do you do?",
+        string: "Too many requests",
     },
     HTTP_CONFLICT: {
         code: 409,

@@ -6,9 +6,9 @@
     "scripts": {
         "start": "node app/server.js",
         "start:dev": "node --watch app/server.js",
-        "test": "NODE_OPTIONS=--experimental-vm-modules jest --forceExit",
-        "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
-        "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
+        "test": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --forceExit",
+        "test:watch": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --watch",
+        "test:coverage": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --coverage",
         "lint": "node node_modules/eslint/bin/eslint.js . --fix",
         "lint:check": "node node_modules/eslint/bin/eslint.js .",
         "format": "prettier --write \"**/*.{js,mjs,cjs}\"",
@@ -19,6 +19,7 @@
         "better-sqlite3": "^11.0.0",
         "ejs": "^3.1.10",
         "express": "^4.19.0",
+        "morgan": "^1.10.1",
         "node-cache": "^5.1.2"
     },
     "devDependencies": {

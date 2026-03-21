@@ -91,24 +91,20 @@ class Injuries extends Model {
 
         let sql = `
             SELECT 
-                p.id as player_id,
-                p.name as player_name,
-                t.name as team_name,
-                p.position,
-                COUNT(i.id) as total_injuries,
-                COUNT(DISTINCT pgs.game_id) as total_games_played,
-                ROUND(CAST(COUNT(i.id) AS FLOAT) / COUNT(DISTINCT pgs.game_id), 4) as injury_rate
-            FROM players p
-            JOIN teams t ON t.id = p.team_id
-            JOIN injuries i ON i.player_id = p.id
-            JOIN player_game_stats pgs ON pgs.player_id = p.id
-            GROUP BY p.id, p.name, t.name, p.position
-            HAVING COUNT(i.id) >= ?
+                player_id,
+                player_name,
+                team_name,
+                position,
+                total_injuries,
+                total_games_played,
+                injury_rate
+            FROM player_injury_stats
+            WHERE total_injuries >= ?
         `;
         const params = [min_injuries];
 
         if (position) {
-            sql += ` AND p.position = ?`;
+            sql += ` AND position = ?`;
             params.push(position);
         }
 
@@ -123,24 +119,20 @@ class Injuries extends Model {
 
         let sql = `
             SELECT 
-                p.id as player_id,
-                p.name as player_name,
-                t.name as team_name,
-                p.position,
-                COALESCE(COUNT(i.id), 0) as total_injuries,
-                COUNT(DISTINCT pgs.game_id) as total_games_played,
-                ROUND(CAST(COALESCE(COUNT(i.id), 0) AS FLOAT) / COUNT(DISTINCT pgs.game_id), 4) as injury_rate
-            FROM players p
-            JOIN teams t ON t.id = p.team_id
-            JOIN player_game_stats pgs ON pgs.player_id = p.id
-            LEFT JOIN injuries i ON i.player_id = p.id
-            GROUP BY p.id, p.name, t.name, p.position
-            HAVING COUNT(DISTINCT pgs.game_id) >= ?
+                player_id,
+                player_name,
+                team_name,
+                position,
+                total_injuries,
+                total_games_played,
+                injury_rate
+            FROM player_injury_stats
+            WHERE total_games_played >= ?
         `;
         const params = [min_games];
 
         if (position) {
-            sql += ` AND p.position = ?`;
+            sql += ` AND position = ?`;
             params.push(position);
         }
 
@@ -244,19 +236,41 @@ class Injuries extends Model {
 
         const games = await this.query(sql, params);
 
-        // For each game, get the injured players
+        // If no games, return early
+        if (games.length === 0) {
+            return games;
+        }
+
+        // Fetch all injured players in a single query to avoid N+1
+        const game_ids = games.map((g) => g.game_id);
+        const placeholders = game_ids.map(() => "?").join(",");
+        const all_injured = await this.query(
+            `
+            SELECT i.game_id, p.id as player_id, p.name as player_name, p.position
+            FROM injuries i
+            JOIN players p ON p.id = i.player_id
+            WHERE i.game_id IN (${placeholders})
+            ORDER BY i.game_id, p.position, p.name
+        `,
+            game_ids,
+        );
+
+        // Group injured players by game_id
+        const injured_by_game = {};
+        for (const player of all_injured) {
+            if (!injured_by_game[player.game_id]) {
+                injured_by_game[player.game_id] = [];
+            }
+            injured_by_game[player.game_id].push({
+                player_id: player.player_id,
+                player_name: player.player_name,
+                position: player.position,
+            });
+        }
+
+        // Attach injured players to each game
         for (const game of games) {
-            const injured = await this.query(
-                `
-                SELECT p.id as player_id, p.name as player_name, p.position
-                FROM injuries i
-                JOIN players p ON p.id = i.player_id
-                WHERE i.game_id = ?
-                ORDER BY p.position, p.name
-            `,
-                [game.game_id],
-            );
-            game.injured_players = injured;
+            game.injured_players = injured_by_game[game.game_id] || [];
         }
 
         return games;

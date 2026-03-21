@@ -21,6 +21,12 @@ class Model extends ClassTypes {
         return 300;
     }
 
+    allowed_order_by() {
+        // Override in subclasses to define allowed orderBy values
+        // This prevents SQL injection via orderBy parameter
+        return [];
+    }
+
     cache_key(selector, options) {
         return JSON.stringify({ table: this._table, selector, options });
     }
@@ -48,6 +54,11 @@ class Model extends ClassTypes {
         const { limit = null, offset = 0, orderBy = null } = options;
 
         if (orderBy) {
+            // Validate orderBy against allowlist to prevent SQL injection
+            const allowed = this.allowed_order_by();
+            if (allowed.length > 0 && !allowed.includes(orderBy)) {
+                throw new Error(`Invalid orderBy value: ${orderBy}. Allowed values: ${allowed.join(", ")}`);
+            }
             query += ` ORDER BY ${orderBy}`;
         }
 

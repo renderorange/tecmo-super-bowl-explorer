@@ -50,7 +50,11 @@ tests/
 
 ## API Endpoints
 
-All endpoints support standard query parameters:
+### Health Check
+
+- `GET /health` - Server health and database connection status
+
+All other endpoints support standard query parameters:
 
 - `limit` (1-1000, default varies by endpoint)
 - `offset` (0+, default 0)
@@ -171,7 +175,7 @@ npm run lint       # Run linter
 
 ## Test Coverage
 
-- 48 tests across 6 test suites
+- 92 tests across 9 test suites (6 route tests + 3 model unit tests)
 - Tests cover:
     - Basic CRUD operations
     - Input validation (400 errors)
@@ -180,5 +184,8 @@ npm run lint       # Run linter
     - Filtering
     - Sub-resources
     - Analytical queries (reports and injuries)
+    - Model business logic (compute_stats, cache behavior)
+    - orderBy validation
+    - Base model functionality
 
 ---

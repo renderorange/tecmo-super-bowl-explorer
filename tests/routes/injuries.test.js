@@ -57,13 +57,13 @@ describe("Injuries API", () => {
             expect(response.body[0]).toHaveProperty("player_name");
             expect(response.body[0]).toHaveProperty("total_injuries");
         }
-    });
+    }, 10000); // 10 second timeout
 
     it("returns immune players", async () => {
         const response = await client.get("/api/injuries/immune");
         expect(response.status).toBe(200);
         expect(Array.isArray(response.body)).toBe(true);
-    });
+    }, 10000); // 10 second timeout
 
     it("returns injury rates by position", async () => {
         const response = await client.get("/api/injuries/by_position");

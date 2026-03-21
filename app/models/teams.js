@@ -5,6 +5,10 @@ class Teams extends Model {
         return 3600;
     }
 
+    allowed_order_by() {
+        return ["conference, division, name", "name", "name DESC", "id", "id DESC"];
+    }
+
     async get_team_seasons(id) {
         return this.query(
             `

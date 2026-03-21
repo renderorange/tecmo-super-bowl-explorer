@@ -1,0 +1,55 @@
+name: CI
+
+on:
+    pull_request:
+        branches:
+            - main
+            - master
+    push:
+        branches:
+            - main
+            - master
+
+jobs:
+    ci:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "20"
+                  cache: "npm"
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Run lint check
+              run: npm run lint:check
+
+            - name: Run format check
+              run: npm run format:check
+
+            - name: Run tests
+              run: npm run test
+
+            - name: Run test coverage and check threshold
+              run: |
+                  npm run test:coverage > coverage-output.txt 2>&1
+                  cat coverage-output.txt
+                  COVERAGE=$(grep "All files" coverage-output.txt | awk '{print $4}' | head -1)
+                  echo "Statement Coverage: ${COVERAGE}%"
+
+                  # Compare using awk (handles floating point)
+                  THRESHOLD=80
+                  PASS=$(echo "$COVERAGE $THRESHOLD" | awk '{if ($1 >= $2) print "1"; else print "0"}')
+
+                  if [ "$PASS" = "0" ]; then
+                    echo "❌ Error: Coverage ${COVERAGE}% is below ${THRESHOLD}% threshold"
+                    exit 1
+                  fi
+
+                  echo "✅ Coverage check passed: ${COVERAGE}% >= ${THRESHOLD}%"
