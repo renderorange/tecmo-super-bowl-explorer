@@ -43,7 +43,9 @@ class Players extends Model {
         );
     }
 
-    async get_player_game_stats(id) {
+    async get_player_game_stats(id, options = {}) {
+        const { limit = 100, offset = 0 } = options;
+
         return this.query(
             `
             SELECT pgs.*, g.week, g.season_id, g.home_score, g.away_score,
@@ -55,8 +57,9 @@ class Players extends Model {
             JOIN players p ON p.id = pgs.player_id
             WHERE pgs.player_id = ?
             ORDER BY g.season_id DESC, g.week DESC
+            LIMIT ? OFFSET ?
         `,
-            [id],
+            [id, limit, offset],
         );
     }
 }

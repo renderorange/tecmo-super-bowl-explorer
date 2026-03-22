@@ -42,11 +42,12 @@ router.get("/:id", validate_id_param("id"), async (req, res) => {
     }
 });
 
-router.get("/:id/game_stats", validate_id_param("id"), async (req, res) => {
+router.get("/:id/game_stats", validate_id_param("id"), validate_pagination, async (req, res) => {
     const { id } = req.params;
+    const { limit, offset } = req.pagination;
 
     try {
-        const stats = await players.get_player_game_stats(id);
+        const stats = await players.get_player_game_stats(id, { limit, offset });
         res.json(stats);
     } catch (err) {
         console.error(err);
