@@ -48,10 +48,11 @@ class Players extends Model {
             `
             SELECT pgs.*, g.week, g.season_id, g.home_score, g.away_score,
                    g.home_team_id, g.away_team_id,
-                   CASE WHEN g.home_team_id = (SELECT team_id FROM players WHERE id = pgs.player_id)
+                   CASE WHEN g.home_team_id = p.team_id
                         THEN g.away_team_id ELSE g.home_team_id END as opponent_id
             FROM player_game_stats pgs
             JOIN games g ON g.id = pgs.game_id
+            JOIN players p ON p.id = pgs.player_id
             WHERE pgs.player_id = ?
             ORDER BY g.season_id DESC, g.week DESC
         `,
