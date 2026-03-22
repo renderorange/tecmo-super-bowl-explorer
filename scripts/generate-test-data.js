@@ -4,9 +4,14 @@
  * Generate test data for performance testing.
  * Creates N seasons with games, player stats, and injuries.
  *
+ * Requirements:
+ *   - Automator project at ~/git/tecmo-super-bowl-automator (or custom path)
+ *   - Automator dependencies installed: cd ../automator && npm ci
+ *
  * Usage:
  *   node scripts/generate-test-data.js --seasons 1000
  *   node scripts/generate-test-data.js --quick  # 10 seasons
+ *   node scripts/generate-test-data.js --automator-path /custom/path
  *
  * Expects the database schema to already exist (run migrations first).
  * Uses Better-sqlite3 with transaction optimization for performance.
@@ -14,6 +19,8 @@
 
 const Database = require("better-sqlite3");
 const path = require("path");
+const { execSync } = require("child_process");
+const fs = require("fs");
 
 // Parse command line arguments manually (avoiding dependency on minimist for now)
 function parseArgs() {
@@ -21,6 +28,7 @@ function parseArgs() {
     const parsed = {
         seasons: 1000,
         dbPath: process.env.DB_PATH || path.join(__dirname, "../test/data/stats.db"),
+        automatorPath: process.env.TSB_AUTOMATOR_PATH || path.join(__dirname, "../../tecmo-super-bowl-automator"),
         quick: false,
     };
 
@@ -30,6 +38,9 @@ function parseArgs() {
             i++;
         } else if (args[i] === "--db-path" && args[i + 1]) {
             parsed.dbPath = args[i + 1];
+            i++;
+        } else if (args[i] === "--automator-path" && args[i + 1]) {
+            parsed.automatorPath = args[i + 1];
             i++;
         } else if (args[i] === "--quick") {
             parsed.quick = true;
@@ -46,6 +57,7 @@ function parseArgs() {
 const argv = parseArgs();
 const SEASONS = argv.seasons;
 const DB_PATH = argv.dbPath;
+const AUTOMATOR_PATH = argv.automatorPath;
 
 // Constants from automator schema
 const WEEKS = 16;
@@ -419,40 +431,67 @@ const generateAllData = db.transaction(() => {
 // Execute the transaction
 generateAllData();
 
-// Refresh player_injury_stats materialized table
+// Refresh player_injury_stats materialized table using automator's script
 console.log("");
 console.log("Refreshing player_injury_stats materialized table...");
 
-db.exec(`
-    DELETE FROM player_injury_stats;
-    
-    INSERT INTO player_injury_stats (player_id, player_name, team_id, team_name, position, total_injuries, total_games_played, injury_rate)
-    SELECT
-        p.id AS player_id,
-        p.name AS player_name,
-        p.team_id,
-        t.name AS team_name,
-        p.position,
-        COALESCE(i.injury_count, 0) AS total_injuries,
-        COALESCE(g.games_played, 0) AS total_games_played,
-        CASE
-            WHEN COALESCE(g.games_played, 0) > 0 THEN
-                CAST(COALESCE(i.injury_count, 0) AS REAL) / COALESCE(g.games_played, 0)
-            ELSE 0.0
-        END AS injury_rate
-    FROM players p
-    JOIN teams t ON p.team_id = t.id
-    LEFT JOIN (
-        SELECT player_id, COUNT(*) AS injury_count
-        FROM injuries
-        GROUP BY player_id
-    ) i ON p.id = i.player_id
-    LEFT JOIN (
-        SELECT player_id, COUNT(DISTINCT game_id) AS games_played
-        FROM player_game_stats
-        GROUP BY player_id
-    ) g ON p.id = g.player_id;
-`);
+// Validate automator project exists
+if (!fs.existsSync(AUTOMATOR_PATH)) {
+    console.error("");
+    console.error("✗ Error: tecmo-super-bowl-automator project not found");
+    console.error(`  Expected location: ${AUTOMATOR_PATH}`);
+    console.error("");
+    console.error("  The automator project is required to refresh player_injury_stats.");
+    console.error("  Please clone it to run this script:");
+    console.error("");
+    console.error("    cd ~/git");
+    console.error("    git clone https://github.com/renderorange/tecmo-super-bowl-automator.git");
+    console.error("");
+    console.error("  Or specify a custom path:");
+    console.error(`    ${process.argv.join(" ")} --automator-path /path/to/automator`);
+    console.error("");
+    process.exit(1);
+}
+
+// Validate automator has the refresh script
+const refreshScriptPath = path.join(AUTOMATOR_PATH, "scripts/refresh-injury-stats.js");
+if (!fs.existsSync(refreshScriptPath)) {
+    console.error("");
+    console.error("✗ Error: refresh-injury-stats.js not found in automator project");
+    console.error(`  Expected: ${refreshScriptPath}`);
+    console.error("");
+    console.error("  The automator project may be outdated or incomplete.");
+    console.error("  Try updating it:");
+    console.error("");
+    console.error(`    cd ${AUTOMATOR_PATH}`);
+    console.error("    git pull");
+    console.error("    npm ci");
+    console.error("");
+    process.exit(1);
+}
+
+// Run the automator's refresh script
+try {
+    execSync("npm run db:refresh-injury-stats", {
+        cwd: AUTOMATOR_PATH,
+        env: {
+            ...process.env,
+            TSB_DB_PATH: DB_PATH, // Point to our test database
+        },
+        stdio: "inherit", // Show output from the script
+    });
+} catch (error) {
+    console.error("");
+    console.error("✗ Failed to refresh player_injury_stats");
+    console.error(`  Error: ${error.message}`);
+    console.error("");
+    console.error("  This may indicate:");
+    console.error("  - Automator dependencies not installed (run 'npm ci' in automator)");
+    console.error("  - Database corruption");
+    console.error("  - Missing migrations");
+    console.error("");
+    process.exit(1);
+}
 
 db.close();
 

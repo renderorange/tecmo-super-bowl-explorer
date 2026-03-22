@@ -145,23 +145,17 @@ class Injuries extends Model {
     async get_rates_by_position() {
         return this.query(`
             SELECT 
-                injury_counts.position,
-                injury_counts.total_injuries,
-                game_counts.total_player_games,
-                ROUND(CAST(injury_counts.total_injuries AS FLOAT) / game_counts.total_player_games, 4) as injury_rate,
-                injury_counts.player_count
-            FROM (
-                SELECT p.position, COUNT(*) as total_injuries, COUNT(DISTINCT i.player_id) as player_count
-                FROM injuries i
-                JOIN players p ON p.id = i.player_id
-                GROUP BY p.position
-            ) injury_counts
-            JOIN (
-                SELECT p.position, COUNT(DISTINCT pgs.game_id) as total_player_games
-                FROM player_game_stats pgs
-                JOIN players p ON p.id = pgs.player_id
-                GROUP BY p.position
-            ) game_counts ON game_counts.position = injury_counts.position
+                position,
+                SUM(total_injuries) as total_injuries,
+                SUM(total_games_played) as total_player_games,
+                CASE
+                    WHEN SUM(total_games_played) > 0
+                    THEN ROUND(CAST(SUM(total_injuries) AS FLOAT) / SUM(total_games_played), 4)
+                    ELSE 0
+                END as injury_rate,
+                COUNT(*) as player_count
+            FROM player_injury_stats
+            GROUP BY position
             ORDER BY injury_rate DESC
         `);
     }
@@ -169,24 +163,17 @@ class Injuries extends Model {
     async get_rates_by_team() {
         return this.query(`
             SELECT 
-                t.id as team_id,
-                t.name as team_name,
-                injury_counts.total_injuries,
-                game_counts.total_player_games,
-                ROUND(CAST(injury_counts.total_injuries AS FLOAT) / game_counts.total_player_games, 4) as injury_rate
-            FROM teams t
-            JOIN (
-                SELECT p.team_id, COUNT(*) as total_injuries
-                FROM injuries i
-                JOIN players p ON p.id = i.player_id
-                GROUP BY p.team_id
-            ) injury_counts ON injury_counts.team_id = t.id
-            JOIN (
-                SELECT p.team_id, COUNT(DISTINCT pgs.game_id) as total_player_games
-                FROM player_game_stats pgs
-                JOIN players p ON p.id = pgs.player_id
-                GROUP BY p.team_id
-            ) game_counts ON game_counts.team_id = t.id
+                team_id,
+                team_name,
+                SUM(total_injuries) as total_injuries,
+                SUM(total_games_played) as total_player_games,
+                CASE
+                    WHEN SUM(total_games_played) > 0
+                    THEN ROUND(CAST(SUM(total_injuries) AS FLOAT) / SUM(total_games_played), 4)
+                    ELSE 0
+                END as injury_rate
+            FROM player_injury_stats
+            GROUP BY team_id, team_name
             ORDER BY injury_rate DESC
         `);
     }
