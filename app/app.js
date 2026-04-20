@@ -10,8 +10,8 @@ if (process.env.NODE_ENV !== "test") {
 }
 
 const routes = {
+    health: require("./routes/health"),
     api: {
-        health: require("./routes/health"),
         seasons: require("./routes/api/seasons"),
         teams: require("./routes/api/teams"),
         players: require("./routes/api/players"),
@@ -22,7 +22,7 @@ const routes = {
     default_route: require("./routes/default_route"),
 };
 
-app.use("/health", routes.api.health);
+app.use("/health", routes.health);
 app.use("/api/seasons", routes.api.seasons);
 app.use("/api/teams", routes.api.teams);
 app.use("/api/players", routes.api.players);

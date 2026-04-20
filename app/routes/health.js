@@ -3,7 +3,7 @@ const router = express.Router();
 const db = require("../lib/db");
 const { status } = require("../lib/response");
 
-router.get("/health", (req, res) => {
+router.get("/", (req, res) => {
     try {
         // Test database connection
         db.prepare("SELECT 1").get();
