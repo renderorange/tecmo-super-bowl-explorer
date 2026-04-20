@@ -431,7 +431,7 @@ const generateAllData = db.transaction(() => {
 // Execute the transaction
 generateAllData();
 
-// Refresh player_injury_stats materialized table using automator's script
+// Run post-import aggregation using automator's script
 console.log("");
 console.log("Refreshing player_injury_stats materialized table...");
 
@@ -453,11 +453,11 @@ if (!fs.existsSync(AUTOMATOR_PATH)) {
     process.exit(1);
 }
 
-// Validate automator has the refresh script
-const refreshScriptPath = path.join(AUTOMATOR_PATH, "scripts/refresh-injury-stats.js");
+// Validate automator has the post-import aggregation script
+const refreshScriptPath = path.join(AUTOMATOR_PATH, "scripts/post-import-aggregation.js");
 if (!fs.existsSync(refreshScriptPath)) {
     console.error("");
-    console.error("✗ Error: refresh-injury-stats.js not found in automator project");
+    console.error("✗ Error: post-import-aggregation.js not found in automator project");
     console.error(`  Expected: ${refreshScriptPath}`);
     console.error("");
     console.error("  The automator project may be outdated or incomplete.");
@@ -470,9 +470,9 @@ if (!fs.existsSync(refreshScriptPath)) {
     process.exit(1);
 }
 
-// Run the automator's refresh script
+// Run the automator's post-import aggregation script
 try {
-    execSync("npm run db:refresh-injury-stats", {
+    execSync("npm run db:post-import-aggregation", {
         cwd: AUTOMATOR_PATH,
         env: {
             ...process.env,
