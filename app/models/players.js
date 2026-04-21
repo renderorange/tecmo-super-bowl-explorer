@@ -31,6 +31,35 @@ class Players extends Model {
         return this.query(sql, params);
     }
 
+    async count_players(filters = {}) {
+        const { team_id, position } = filters;
+
+        let sql = `
+            SELECT COUNT(*) as count
+            FROM players p
+            JOIN teams t ON t.id = p.team_id
+            WHERE 1=1
+        `;
+        const params = [];
+
+        if (team_id) {
+            sql += ` AND p.team_id = ?`;
+            params.push(team_id);
+        }
+        if (position) {
+            sql += ` AND p.position = ?`;
+            params.push(position);
+        }
+
+        const result = await this.query(sql, params);
+        return result[0] ? result[0].count : 0;
+    }
+
+    async count_player_game_stats(id) {
+        const result = await this.query(`SELECT COUNT(*) as count FROM player_game_stats WHERE player_id = ?`, [id]);
+        return result[0] ? result[0].count : 0;
+    }
+
     async get_player_with_team(id) {
         return this.query(
             `

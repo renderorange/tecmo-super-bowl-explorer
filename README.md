@@ -65,6 +65,35 @@ All other endpoints support standard query parameters:
 
 All IDs are validated and return 400 for invalid values.
 
+### Response Envelope
+
+All endpoints return responses wrapped in a `data` key:
+
+```json
+{
+  "data": { ... }
+}
+```
+
+Paginated list endpoints additionally include a `pagination` object:
+
+```json
+{
+  "data": [ ... ],
+  "pagination": {
+    "total": 6890,
+    "limit": 100,
+    "offset": 0,
+    "count": 100
+  }
+}
+```
+
+- `total` - Total number of matching records (regardless of limit/offset)
+- `limit` - The limit applied to this request
+- `offset` - The offset applied to this request
+- `count` - Number of records returned in this response
+
 ### Seasons
 
 - `GET /api/seasons` - All seasons (paginated)
@@ -144,6 +173,8 @@ List endpoints support:
 
 - `limit` - Maximum results (1-1000, varies by default)
 - `offset` - Starting position (0+)
+
+Paginated responses include a `pagination` object with `total`, `limit`, `offset`, and `count` fields. `total` reflects the full count of matching records regardless of the applied limit, allowing consumers to calculate page counts and detect end-of-results.
 
 ---
 

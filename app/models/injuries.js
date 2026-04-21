@@ -52,6 +52,92 @@ class Injuries extends Model {
         return this.query(sql, params);
     }
 
+    async count_injuries(filters = {}) {
+        const { season_id, player_id, team_id, week } = filters;
+
+        let sql = `
+            SELECT COUNT(*) as count
+            FROM injuries i
+            JOIN players p ON p.id = i.player_id
+            WHERE 1=1
+        `;
+        const params = [];
+
+        if (season_id) {
+            sql += ` AND i.season_id = ?`;
+            params.push(season_id);
+        }
+        if (player_id) {
+            sql += ` AND i.player_id = ?`;
+            params.push(player_id);
+        }
+        if (team_id) {
+            sql += ` AND p.team_id = ?`;
+            params.push(team_id);
+        }
+        if (week) {
+            sql += ` AND i.week_injured = ?`;
+            params.push(week);
+        }
+
+        const result = await this.query(sql, params);
+        return result[0] ? result[0].count : 0;
+    }
+
+    async count_prone_players(filters = {}) {
+        const { position, min_injuries = 3 } = filters;
+
+        let sql = `SELECT COUNT(*) as count FROM player_injury_stats WHERE total_injuries >= ?`;
+        const params = [min_injuries];
+
+        if (position) {
+            sql += ` AND position = ?`;
+            params.push(position);
+        }
+
+        const result = await this.query(sql, params);
+        return result[0] ? result[0].count : 0;
+    }
+
+    async count_immune_players(filters = {}) {
+        const { position, min_games = 100 } = filters;
+
+        let sql = `SELECT COUNT(*) as count FROM player_injury_stats WHERE total_games_played >= ?`;
+        const params = [min_games];
+
+        if (position) {
+            sql += ` AND position = ?`;
+            params.push(position);
+        }
+
+        const result = await this.query(sql, params);
+        return result[0] ? result[0].count : 0;
+    }
+
+    async count_clustering(filters = {}) {
+        const { season_id, min_injuries = 3 } = filters;
+
+        let sql = `
+            SELECT COUNT(*) as count FROM (
+                SELECT g.id
+                FROM games g
+                JOIN injuries i ON i.game_id = g.id
+                WHERE 1=1
+        `;
+        const params = [];
+
+        if (season_id) {
+            sql += ` AND g.season_id = ?`;
+            params.push(season_id);
+        }
+
+        sql += ` GROUP BY g.id HAVING COUNT(i.id) >= ?)`;
+        params.push(min_injuries);
+
+        const result = await this.query(sql, params);
+        return result[0] ? result[0].count : 0;
+    }
+
     async get_injury_by_id(id) {
         const result = await this.query(
             `

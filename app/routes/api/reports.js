@@ -14,7 +14,7 @@ router.get("/standings/:season_id", validate_id_param("season_id"), async (req, 
 
     try {
         const standings = await reports.get_standings(season_id);
-        res.json(standings);
+        res.json({ data: standings });
     } catch (err) {
         console.error(err);
         res.status(status.HTTP_INTERNAL_SERVER_ERROR.code).json({ error: status.HTTP_INTERNAL_SERVER_ERROR.string });
@@ -26,7 +26,7 @@ router.get("/standings/:season_id/division", validate_id_param("season_id"), asy
 
     try {
         const standings = await reports.get_division_standings(season_id);
-        res.json(standings);
+        res.json({ data: standings });
     } catch (err) {
         console.error(err);
         res.status(status.HTTP_INTERNAL_SERVER_ERROR.code).json({ error: status.HTTP_INTERNAL_SERVER_ERROR.string });
@@ -45,10 +45,12 @@ router.get("/team/:team_id/season/:season_id", validate_id_param("team_id"), val
         const report = await reports.get_team_season_report(team_id, season_id);
 
         res.json({
-            team,
-            season_stats: report.stats,
-            games: report.games,
-            player_stats: report.top_performers,
+            data: {
+                team,
+                season_stats: report.stats,
+                games: report.games,
+                player_stats: report.top_performers,
+            },
         });
     } catch (err) {
         console.error(err);
@@ -65,9 +67,11 @@ router.get("/head_to_head/:team1_id/:team2_id", validate_id_param("team1_id"), v
         const team2_info = await teams.first({ id: team2_id });
 
         res.json({
-            team1: team1_info,
-            team2: team2_info,
-            games,
+            data: {
+                team1: team1_info,
+                team2: team2_info,
+                games,
+            },
         });
     } catch (err) {
         console.error(err);
@@ -80,7 +84,7 @@ router.get("/team/:team_id/stats_by_season", validate_id_param("team_id"), async
 
     try {
         const stats = await reports.get_team_stats_by_season(team_id);
-        res.json(stats);
+        res.json({ data: stats });
     } catch (err) {
         console.error(err);
         res.status(status.HTTP_INTERNAL_SERVER_ERROR.code).json({ error: status.HTTP_INTERNAL_SERVER_ERROR.string });

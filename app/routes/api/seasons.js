@@ -11,8 +11,11 @@ router.get("/", validate_pagination, async (req, res) => {
     const { limit, offset } = req.pagination;
 
     try {
-        const results = await seasons.get({}, { orderBy: "id DESC", limit, offset });
-        res.json(results);
+        const [results, total] = await Promise.all([seasons.get({}, { orderBy: "id DESC", limit, offset }), seasons.count({})]);
+        res.json({
+            data: results,
+            pagination: { total, limit, offset, count: results.length },
+        });
     } catch (err) {
         console.error(err);
         res.status(status.HTTP_INTERNAL_SERVER_ERROR.code).json({ error: status.HTTP_INTERNAL_SERVER_ERROR.string });
@@ -27,7 +30,7 @@ router.get("/:id", validate_id_param("id"), async (req, res) => {
         if (!season) {
             return res.status(status.HTTP_NOT_FOUND.code).json({ error: status.HTTP_NOT_FOUND.string });
         }
-        res.json(season);
+        res.json({ data: season });
     } catch (err) {
         console.error(err);
         res.status(status.HTTP_INTERNAL_SERVER_ERROR.code).json({ error: status.HTTP_INTERNAL_SERVER_ERROR.string });
@@ -44,7 +47,7 @@ router.get("/:id/stats", validate_id_param("id"), async (req, res) => {
         }
 
         const stats = await seasons.get_season_stats(id);
-        res.json(stats);
+        res.json({ data: stats });
     } catch (err) {
         console.error(err);
         res.status(status.HTTP_INTERNAL_SERVER_ERROR.code).json({ error: status.HTTP_INTERNAL_SERVER_ERROR.string });

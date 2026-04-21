@@ -1,7 +1,6 @@
 module.exports = {
     transform: {},
-    testMatch: ["**/tests/**/*.test.js"],
-    testPathIgnorePatterns: ["/node_modules/", "/tests/performance/"],
+    testMatch: ["**/tests/performance/**/*.test.js"],
     passWithNoTests: true,
     setupFilesAfterEnv: ["<rootDir>/tests/setup.cjs"],
     testEnvironment: "node",

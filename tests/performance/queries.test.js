@@ -62,7 +62,7 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/seasons/:id", duration, threshold)}`);
 
             expect(response.status).toBe(200);
-            expect(response.body).toHaveProperty("id");
+            expect(response.body.data).toHaveProperty("id");
             expect(duration).toBeLessThan(threshold);
         });
 
@@ -72,7 +72,7 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/teams/:id", duration, threshold)}`);
 
             expect(response.status).toBe(200);
-            expect(response.body).toHaveProperty("id");
+            expect(response.body.data).toHaveProperty("id");
             expect(duration).toBeLessThan(threshold);
         });
 
@@ -82,7 +82,7 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/players/:id", duration, threshold)}`);
 
             expect(response.status).toBe(200);
-            expect(response.body).toHaveProperty("id");
+            expect(response.body.data).toHaveProperty("id");
             expect(duration).toBeLessThan(threshold);
         });
 
@@ -92,7 +92,7 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/games/:id", duration, threshold)}`);
 
             expect(response.status).toBe(200);
-            expect(response.body).toHaveProperty("id");
+            expect(response.body.data).toHaveProperty("id");
             expect(duration).toBeLessThan(threshold);
         });
     });
@@ -106,7 +106,8 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/seasons?limit=100", duration, threshold)}`);
 
             expect(response.status).toBe(200);
-            expect(Array.isArray(response.body)).toBe(true);
+            expect(Array.isArray(response.body.data)).toBe(true);
+            expect(response.body.pagination.total).toBeGreaterThan(500);
             expect(duration).toBeLessThan(threshold);
         });
 
@@ -116,7 +117,8 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/teams?limit=100", duration, threshold)}`);
 
             expect(response.status).toBe(200);
-            expect(Array.isArray(response.body)).toBe(true);
+            expect(Array.isArray(response.body.data)).toBe(true);
+            expect(response.body.pagination.total).toBeGreaterThan(20);
             expect(duration).toBeLessThan(threshold);
         });
 
@@ -126,7 +128,8 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/players?limit=100", duration, threshold)}`);
 
             expect(response.status).toBe(200);
-            expect(Array.isArray(response.body)).toBe(true);
+            expect(Array.isArray(response.body.data)).toBe(true);
+            expect(response.body.pagination.total).toBeGreaterThan(500);
             expect(duration).toBeLessThan(threshold);
         });
 
@@ -136,7 +139,8 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/games?limit=50", duration, threshold)}`);
 
             expect(response.status).toBe(200);
-            expect(Array.isArray(response.body)).toBe(true);
+            expect(Array.isArray(response.body.data)).toBe(true);
+            expect(response.body.pagination.total).toBeGreaterThan(100000);
             expect(duration).toBeLessThan(threshold);
         });
     });
@@ -150,7 +154,8 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/players?team_id=1", duration, threshold)}`);
 
             expect(response.status).toBe(200);
-            expect(Array.isArray(response.body)).toBe(true);
+            expect(Array.isArray(response.body.data)).toBe(true);
+            expect(response.body.pagination.total).toBeGreaterThan(0);
             expect(duration).toBeLessThan(threshold);
         });
 
@@ -160,7 +165,8 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/players?position=QB", duration, threshold)}`);
 
             expect(response.status).toBe(200);
-            expect(Array.isArray(response.body)).toBe(true);
+            expect(Array.isArray(response.body.data)).toBe(true);
+            expect(response.body.pagination.total).toBeGreaterThan(0);
             expect(duration).toBeLessThan(threshold);
         });
 
@@ -170,7 +176,8 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/games?season_id=1", duration, threshold)}`);
 
             expect(response.status).toBe(200);
-            expect(Array.isArray(response.body)).toBe(true);
+            expect(Array.isArray(response.body.data)).toBe(true);
+            expect(response.body.pagination.total).toBeGreaterThan(100);
             expect(duration).toBeLessThan(threshold);
         });
 
@@ -180,7 +187,8 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/games?week=5", duration, threshold)}`);
 
             expect(response.status).toBe(200);
-            expect(Array.isArray(response.body)).toBe(true);
+            expect(Array.isArray(response.body.data)).toBe(true);
+            expect(response.body.pagination.total).toBeGreaterThan(10000);
             expect(duration).toBeLessThan(threshold);
         });
 
@@ -190,7 +198,8 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/injuries?season_id=1", duration, threshold)}`);
 
             expect(response.status).toBe(200);
-            expect(Array.isArray(response.body)).toBe(true);
+            expect(Array.isArray(response.body.data)).toBe(true);
+            expect(response.body.pagination.total).toBeGreaterThan(0);
             expect(duration).toBeLessThan(threshold);
         });
 
@@ -203,7 +212,8 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/players/:id/game_stats", duration, gameStatsThreshold)}`);
 
             expect(response.status).toBe(200);
-            expect(Array.isArray(response.body)).toBe(true);
+            expect(Array.isArray(response.body.data)).toBe(true);
+            expect(response.body.pagination.total).toBeGreaterThan(100);
             expect(duration).toBeLessThan(gameStatsThreshold);
         });
     });
@@ -217,7 +227,7 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/reports/standings/:id", duration, threshold)}`);
 
             expect(response.status).toBe(200);
-            expect(Array.isArray(response.body)).toBe(true);
+            expect(Array.isArray(response.body.data)).toBe(true);
             expect(duration).toBeLessThan(threshold);
         });
 
@@ -227,8 +237,8 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/reports/team/:id/season/:season_id", duration, threshold)}`);
 
             expect(response.status).toBe(200);
-            expect(response.body).toHaveProperty("team");
-            expect(response.body).toHaveProperty("games");
+            expect(response.body.data).toHaveProperty("team");
+            expect(response.body.data).toHaveProperty("games");
             expect(duration).toBeLessThan(threshold);
         });
 
@@ -238,9 +248,9 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/reports/head_to_head/:id1/:id2", duration, threshold)}`);
 
             expect(response.status).toBe(200);
-            expect(response.body).toHaveProperty("team1");
-            expect(response.body).toHaveProperty("team2");
-            expect(response.body).toHaveProperty("games");
+            expect(response.body.data).toHaveProperty("team1");
+            expect(response.body.data).toHaveProperty("team2");
+            expect(response.body.data).toHaveProperty("games");
             expect(duration).toBeLessThan(threshold);
         });
 
@@ -250,7 +260,7 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/reports/team/:id/stats_by_season", duration, threshold)}`);
 
             expect(response.status).toBe(200);
-            expect(Array.isArray(response.body)).toBe(true);
+            expect(Array.isArray(response.body.data)).toBe(true);
             expect(duration).toBeLessThan(threshold);
         });
     });
@@ -264,7 +274,8 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/injuries/prone", duration, threshold)}`);
 
             expect(response.status).toBe(200);
-            expect(Array.isArray(response.body)).toBe(true);
+            expect(Array.isArray(response.body.data)).toBe(true);
+            expect(response.body.pagination.total).toBeGreaterThan(0);
             expect(duration).toBeLessThan(threshold);
         });
 
@@ -274,7 +285,8 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/injuries/immune", duration, threshold)}`);
 
             expect(response.status).toBe(200);
-            expect(Array.isArray(response.body)).toBe(true);
+            expect(Array.isArray(response.body.data)).toBe(true);
+            expect(response.body.pagination.total).toBeGreaterThan(0);
             expect(duration).toBeLessThan(threshold);
         });
 
@@ -284,7 +296,7 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/injuries/by_position", duration, threshold)}`);
 
             expect(response.status).toBe(200);
-            expect(Array.isArray(response.body)).toBe(true);
+            expect(Array.isArray(response.body.data)).toBe(true);
             expect(duration).toBeLessThan(threshold);
         });
 
@@ -294,7 +306,7 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/injuries/by_team", duration, threshold)}`);
 
             expect(response.status).toBe(200);
-            expect(Array.isArray(response.body)).toBe(true);
+            expect(Array.isArray(response.body.data)).toBe(true);
             expect(duration).toBeLessThan(threshold);
         });
 
@@ -304,7 +316,7 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/injuries/by_week", duration, threshold)}`);
 
             expect(response.status).toBe(200);
-            expect(Array.isArray(response.body)).toBe(true);
+            expect(Array.isArray(response.body.data)).toBe(true);
             expect(duration).toBeLessThan(threshold);
         });
 
@@ -314,7 +326,8 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/injuries/clustering", duration, threshold)}`);
 
             expect(response.status).toBe(200);
-            expect(Array.isArray(response.body)).toBe(true);
+            expect(Array.isArray(response.body.data)).toBe(true);
+            expect(response.body.pagination.total).toBeGreaterThan(0);
             expect(duration).toBeLessThan(threshold);
         });
 
@@ -324,9 +337,9 @@ describe("Query Performance", () => {
             console.log(`  ${formatPerfMessage("GET /api/injuries/impact/:team_id", duration, threshold)}`);
 
             expect(response.status).toBe(200);
-            expect(response.body).toHaveProperty("with_injuries");
-            expect(response.body).toHaveProperty("without_injuries");
-            expect(response.body).toHaveProperty("most_injured_players");
+            expect(response.body.data).toHaveProperty("with_injuries");
+            expect(response.body.data).toHaveProperty("without_injuries");
+            expect(response.body.data).toHaveProperty("most_injured_players");
             expect(duration).toBeLessThan(threshold);
         });
     });

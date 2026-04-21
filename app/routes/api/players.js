@@ -12,14 +12,12 @@ router.get("/", validate_pagination, validate_optional_id_query("team_id"), asyn
     const { limit, offset } = req.pagination;
 
     try {
-        const results = await players.get_players({
-            team_id,
-            position,
-            limit,
-            offset,
+        const filters = { team_id, position, limit, offset };
+        const [results, total] = await Promise.all([players.get_players(filters), players.count_players({ team_id, position })]);
+        res.json({
+            data: results,
+            pagination: { total, limit, offset, count: results.length },
         });
-
-        res.json(results);
     } catch (err) {
         console.error(err);
         res.status(status.HTTP_INTERNAL_SERVER_ERROR.code).json({ error: status.HTTP_INTERNAL_SERVER_ERROR.string });
@@ -35,7 +33,7 @@ router.get("/:id", validate_id_param("id"), async (req, res) => {
         if (!player.length) {
             return res.status(status.HTTP_NOT_FOUND.code).json({ error: status.HTTP_NOT_FOUND.string });
         }
-        res.json(player[0]);
+        res.json({ data: player[0] });
     } catch (err) {
         console.error(err);
         res.status(status.HTTP_INTERNAL_SERVER_ERROR.code).json({ error: status.HTTP_INTERNAL_SERVER_ERROR.string });
@@ -47,8 +45,14 @@ router.get("/:id/game_stats", validate_id_param("id"), validate_pagination, asyn
     const { limit, offset } = req.pagination;
 
     try {
-        const stats = await players.get_player_game_stats(id, { limit, offset });
-        res.json(stats);
+        const [results, total] = await Promise.all([
+            players.get_player_game_stats(id, { limit, offset }),
+            players.count_player_game_stats(id),
+        ]);
+        res.json({
+            data: results,
+            pagination: { total, limit, offset, count: results.length },
+        });
     } catch (err) {
         console.error(err);
         res.status(status.HTTP_INTERNAL_SERVER_ERROR.code).json({ error: status.HTTP_INTERNAL_SERVER_ERROR.string });

@@ -23,15 +23,12 @@ router.get(
         const { limit, offset } = req.pagination;
 
         try {
-            const results = await games.get_games({
-                season_id,
-                week,
-                team_id,
-                limit,
-                offset,
+            const filters = { season_id, week, team_id };
+            const [results, total] = await Promise.all([games.get_games({ ...filters, limit, offset }), games.count_games(filters)]);
+            res.json({
+                data: results,
+                pagination: { total, limit, offset, count: results.length },
             });
-
-            res.json(results);
         } catch (err) {
             console.error(err);
             res.status(status.HTTP_INTERNAL_SERVER_ERROR.code).json({ error: status.HTTP_INTERNAL_SERVER_ERROR.string });
@@ -49,7 +46,7 @@ router.get("/:id", validate_id_param("id"), async (req, res) => {
             return res.status(status.HTTP_NOT_FOUND.code).json({ error: status.HTTP_NOT_FOUND.string });
         }
 
-        res.json(game);
+        res.json({ data: game });
     } catch (err) {
         console.error(err);
         res.status(status.HTTP_INTERNAL_SERVER_ERROR.code).json({ error: status.HTTP_INTERNAL_SERVER_ERROR.string });

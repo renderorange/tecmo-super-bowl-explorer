@@ -18,7 +18,7 @@ const teams = new Teams();
 router.get("/by_position", async (req, res) => {
     try {
         const results = await injuries.get_rates_by_position();
-        res.json(results);
+        res.json({ data: results });
     } catch (err) {
         console.error(err);
         res.status(status.HTTP_INTERNAL_SERVER_ERROR.code).json({ error: status.HTTP_INTERNAL_SERVER_ERROR.string });
@@ -28,7 +28,7 @@ router.get("/by_position", async (req, res) => {
 router.get("/by_team", async (req, res) => {
     try {
         const results = await injuries.get_rates_by_team();
-        res.json(results);
+        res.json({ data: results });
     } catch (err) {
         console.error(err);
         res.status(status.HTTP_INTERNAL_SERVER_ERROR.code).json({ error: status.HTTP_INTERNAL_SERVER_ERROR.string });
@@ -38,7 +38,7 @@ router.get("/by_team", async (req, res) => {
 router.get("/by_week", async (req, res) => {
     try {
         const results = await injuries.get_counts_by_week();
-        res.json(results);
+        res.json({ data: results });
     } catch (err) {
         console.error(err);
         res.status(status.HTTP_INTERNAL_SERVER_ERROR.code).json({ error: status.HTTP_INTERNAL_SERVER_ERROR.string });
@@ -50,14 +50,15 @@ router.get("/prone", validate_pagination, validate_optional_integer_query("min_i
     const { limit, offset } = req.pagination;
 
     try {
-        const results = await injuries.get_prone_players({
-            position,
-            min_injuries,
-            limit,
-            offset,
+        const filters = { position, min_injuries };
+        const [results, total] = await Promise.all([
+            injuries.get_prone_players({ ...filters, limit, offset }),
+            injuries.count_prone_players(filters),
+        ]);
+        res.json({
+            data: results,
+            pagination: { total, limit, offset, count: results.length },
         });
-
-        res.json(results);
     } catch (err) {
         console.error(err);
         res.status(status.HTTP_INTERNAL_SERVER_ERROR.code).json({ error: status.HTTP_INTERNAL_SERVER_ERROR.string });
@@ -69,14 +70,15 @@ router.get("/immune", validate_pagination, validate_optional_integer_query("min_
     const { limit, offset } = req.pagination;
 
     try {
-        const results = await injuries.get_immune_players({
-            position,
-            min_games,
-            limit,
-            offset,
+        const filters = { position, min_games };
+        const [results, total] = await Promise.all([
+            injuries.get_immune_players({ ...filters, limit, offset }),
+            injuries.count_immune_players(filters),
+        ]);
+        res.json({
+            data: results,
+            pagination: { total, limit, offset, count: results.length },
         });
-
-        res.json(results);
     } catch (err) {
         console.error(err);
         res.status(status.HTTP_INTERNAL_SERVER_ERROR.code).json({ error: status.HTTP_INTERNAL_SERVER_ERROR.string });
@@ -93,14 +95,15 @@ router.get(
         const { limit, offset } = req.pagination;
 
         try {
-            const results = await injuries.get_clustering({
-                season_id,
-                min_injuries,
-                limit,
-                offset,
+            const filters = { season_id, min_injuries };
+            const [results, total] = await Promise.all([
+                injuries.get_clustering({ ...filters, limit, offset }),
+                injuries.count_clustering(filters),
+            ]);
+            res.json({
+                data: results,
+                pagination: { total, limit, offset, count: results.length },
             });
-
-            res.json(results);
         } catch (err) {
             console.error(err);
             res.status(status.HTTP_INTERNAL_SERVER_ERROR.code).json({ error: status.HTTP_INTERNAL_SERVER_ERROR.string });
@@ -120,16 +123,15 @@ router.get(
         const { limit, offset } = req.pagination;
 
         try {
-            const results = await injuries.get_injuries({
-                season_id,
-                player_id,
-                team_id,
-                week,
-                limit,
-                offset,
+            const filters = { season_id, player_id, team_id, week };
+            const [results, total] = await Promise.all([
+                injuries.get_injuries({ ...filters, limit, offset }),
+                injuries.count_injuries(filters),
+            ]);
+            res.json({
+                data: results,
+                pagination: { total, limit, offset, count: results.length },
             });
-
-            res.json(results);
         } catch (err) {
             console.error(err);
             res.status(status.HTTP_INTERNAL_SERVER_ERROR.code).json({ error: status.HTTP_INTERNAL_SERVER_ERROR.string });
@@ -147,13 +149,13 @@ router.get("/impact/:team_id", validate_id_param("team_id"), validate_optional_i
             return res.status(status.HTTP_NOT_FOUND.code).json({ error: status.HTTP_NOT_FOUND.string });
         }
 
-        const impact = await injuries.get_team_impact(team_id, {
-            season_id,
-        });
+        const impact = await injuries.get_team_impact(team_id, { season_id });
 
         res.json({
-            team_name: team.name,
-            ...impact,
+            data: {
+                team_name: team.name,
+                ...impact,
+            },
         });
     } catch (err) {
         console.error(err);
@@ -171,7 +173,7 @@ router.get("/:id", validate_id_param("id"), async (req, res) => {
             return res.status(status.HTTP_NOT_FOUND.code).json({ error: status.HTTP_NOT_FOUND.string });
         }
 
-        res.json(injury);
+        res.json({ data: injury });
     } catch (err) {
         console.error(err);
         res.status(status.HTTP_INTERNAL_SERVER_ERROR.code).json({ error: status.HTTP_INTERNAL_SERVER_ERROR.string });

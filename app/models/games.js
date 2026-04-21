@@ -38,6 +38,33 @@ class Games extends Model {
         return this.query(sql, params);
     }
 
+    async count_games(filters = {}) {
+        const { season_id, week, team_id } = filters;
+
+        let sql = `
+            SELECT COUNT(*) as count
+            FROM games g
+            WHERE 1=1
+        `;
+        const params = [];
+
+        if (season_id) {
+            sql += ` AND g.season_id = ?`;
+            params.push(parseInt(season_id));
+        }
+        if (week) {
+            sql += ` AND g.week = ?`;
+            params.push(parseInt(week));
+        }
+        if (team_id) {
+            sql += ` AND (g.home_team_id = ? OR g.away_team_id = ?)`;
+            params.push(parseInt(team_id), parseInt(team_id));
+        }
+
+        const result = await this.query(sql, params);
+        return result[0] ? result[0].count : 0;
+    }
+
     async get_game_with_stats(id) {
         const game = await this.query(
             `
